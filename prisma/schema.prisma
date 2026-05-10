@@ -1,0 +1,41 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Paper {
+  id          String   @id @default(cuid())
+  title       String
+  inputType   String   // "text" | "pdf" | "url"
+  rawContent  String   @db.Text
+  sourceUrl   String?
+  fileName    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  job         Job?
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  paperId     String    @unique
+  paper       Paper     @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  status      JobStatus @default(PENDING)
+  step        String?   // current processing step label
+  error       String?
+  result      Json?     // structured AI output
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
