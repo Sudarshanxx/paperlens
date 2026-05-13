@@ -91,7 +91,7 @@ export default function HomePage() {
           <div className="text-center mb-7">
             <div className="inline-flex items-center gap-1.5 text-xs font-mono text-accent-cyan/80 border border-accent-cyan/20 bg-accent-cyan/5 px-3 py-1.5 rounded-full mb-4">
               <Sparkles size={10} />
-              Powered by Gemini AI
+             Powered by Groq + Llama 3.3
             </div>
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-3 leading-[1.08]">
               Understand any paper
