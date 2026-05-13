@@ -24,7 +24,7 @@ interface JobData {
   paper?: { id: string; title: string; inputType: string; sourceUrl?: string | null };
 }
 
-export default function PaperPage({ params }: { params: { paperId: string } }) {
+export default function PaperPage({ params }: { params: Promise<{ paperId: string }> }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const jobId = searchParams.get("jobId");
