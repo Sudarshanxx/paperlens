@@ -1,8 +1,10 @@
 // src/lib/gemini.ts
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// Using GroqCloud (free, fast) as AI provider
+// Drop-in replacement — same function signature as before
+
 import { AnalysisResult } from "@/types";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 export const ANALYSIS_PROMPT = (paperText: string, title: string) => `
 You are PaperLens AI — an expert at making research papers accessible to students and junior engineers.
@@ -12,7 +14,7 @@ Analyze the following research paper and return a JSON object ONLY (no markdown,
 Paper Title: ${title}
 Paper Content:
 ---
-${paperText.slice(0, 28000)}
+${paperText.slice(0, 12000)}
 ---
 
 Return this exact JSON structure:
@@ -26,35 +28,31 @@ Return this exact JSON structure:
     "problemSolved": "<2-3 sentences: what problem this paper addresses and why it matters>",
     "methodUsed": "<2-3 sentences: the core method or approach the paper proposes>"
   },
-  "keyConcepts": ["<concept 1>", "<concept 2>", "<concept 3>", "...up to 10 concepts"],
+  "keyConcepts": ["<concept 1>", "<concept 2>", "<concept 3>", "<concept 4>", "<concept 5>", "<concept 6>"],
   "math": {
     "hasEquations": <true or false>,
     "equations": [
       {
-        "latex": "<main equation in plain text or simplified LaTeX, e.g. L = sum(y_i * log(p_i))>",
+        "latex": "<main equation in plain text, e.g. L = sum(y_i * log(p_i))>",
         "meaning": "<what this equation computes overall>",
         "symbols": [
           { "symbol": "<symbol>", "meaning": "<what it represents>" }
         ],
-        "stepByStep": [
-          "<step 1 explanation>",
-          "<step 2 explanation>",
-          "<step 3 explanation>"
-        ],
-        "humanExplanation": "<explain the math in plain English, as if to a high school student>"
+        "stepByStep": ["<step 1>", "<step 2>", "<step 3>"],
+        "humanExplanation": "<explain in plain English to a high school student>"
       }
     ]
   },
   "mindMap": {
     "id": "root",
-    "label": "<paper title short>",
+    "label": "<short paper title>",
     "children": [
       {
         "id": "problem",
         "label": "Problem",
         "children": [
-          { "id": "p1", "label": "<specific problem aspect>" },
-          { "id": "p2", "label": "<specific problem aspect>" }
+          { "id": "p1", "label": "<problem aspect>" },
+          { "id": "p2", "label": "<problem aspect>" }
         ]
       },
       {
@@ -69,81 +67,78 @@ Return this exact JSON structure:
         "id": "results",
         "label": "Results",
         "children": [
-          { "id": "r1", "label": "<key result or finding>" },
-          { "id": "r2", "label": "<key result or finding>" }
+          { "id": "r1", "label": "<key result>" },
+          { "id": "r2", "label": "<key result>" }
         ]
       },
       {
         "id": "impact",
         "label": "Impact",
         "children": [
-          { "id": "i1", "label": "<application or implication>" },
-          { "id": "i2", "label": "<application or implication>" }
+          { "id": "i1", "label": "<application>" },
+          { "id": "i2", "label": "<application>" }
         ]
       }
     ]
   },
   "learningCards": [
-    {
-      "question": "What problem does this paper solve?",
-      "answer": "<2-3 sentence answer>",
-      "icon": "target"
-    },
-    {
-      "question": "What is the main idea?",
-      "answer": "<2-3 sentence answer>",
-      "icon": "lightbulb"
-    },
-    {
-      "question": "Why does the method work?",
-      "answer": "<2-3 sentence answer>",
-      "icon": "zap"
-    },
-    {
-      "question": "Where can this be applied?",
-      "answer": "<2-3 sentence answer>",
-      "icon": "globe"
-    },
-    {
-      "question": "What should I learn next?",
-      "answer": "<2-3 sentence answer with specific topics or papers>",
-      "icon": "graduation-cap"
-    }
+    { "question": "What problem does this paper solve?", "answer": "<2-3 sentence answer>", "icon": "target" },
+    { "question": "What is the main idea?", "answer": "<2-3 sentence answer>", "icon": "lightbulb" },
+    { "question": "Why does the method work?", "answer": "<2-3 sentence answer>", "icon": "zap" },
+    { "question": "Where can this be applied?", "answer": "<2-3 sentence answer>", "icon": "globe" },
+    { "question": "What should I learn next?", "answer": "<2-3 sentence answer with specific topics>", "icon": "graduation-cap" }
   ],
   "relatedTopics": [
-    { "label": "<topic 1>", "searchQuery": "<arxiv or google search query>" },
-    { "label": "<topic 2>", "searchQuery": "<arxiv or google search query>" },
-    { "label": "<topic 3>", "searchQuery": "<arxiv or google search query>" },
-    { "label": "<topic 4>", "searchQuery": "<arxiv or google search query>" },
-    { "label": "<topic 5>", "searchQuery": "<arxiv or google search query>" }
+    { "label": "<topic 1>", "searchQuery": "<arxiv search query>" },
+    { "label": "<topic 2>", "searchQuery": "<arxiv search query>" },
+    { "label": "<topic 3>", "searchQuery": "<arxiv search query>" },
+    { "label": "<topic 4>", "searchQuery": "<arxiv search query>" },
+    { "label": "<topic 5>", "searchQuery": "<arxiv search query>" }
   ]
 }
 
 Rules:
-- Return ONLY valid JSON. No markdown code blocks. No preamble.
-- If the paper has no equations, set hasEquations: false and equations: []
-- Be accurate to the actual paper content
-- Make explanations accessible to a junior engineer or student
-- All strings must be properly escaped for JSON
+- Return ONLY valid JSON. No markdown fences. No preamble.
+- If no equations, set hasEquations: false and equations: []
+- Be accurate to the paper content
+- Make explanations accessible to a junior engineer
 `;
 
 export async function analyzeWithGemini(
   paperText: string,
   title: string
 ): Promise<AnalysisResult> {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
-    generationConfig: {
-      temperature: 0.3,
-      maxOutputTokens: 8192,
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error("GROQ_API_KEY not set in environment variables");
+
+  const response = await fetch(GROQ_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
     },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "user",
+          content: ANALYSIS_PROMPT(paperText, title),
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 4096,
+    }),
   });
 
-  const prompt = ANALYSIS_PROMPT(paperText, title);
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Groq API error ${response.status}: ${err}`);
+  }
 
-  // Strip any accidental markdown fences
+  const data = await response.json();
+  const text: string = data.choices?.[0]?.message?.content ?? "";
+
+  // Strip accidental markdown fences
   const cleaned = text
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")

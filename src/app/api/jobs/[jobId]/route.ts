@@ -4,16 +4,20 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
+  const { jobId } = await params;
+
   const job = await prisma.job.findUnique({
-    where: { id: params.jobId },
-    include: { paper: { select: { id: true, title: true, inputType: true, sourceUrl: true, fileName: true } } },
+    where: { id: jobId },
+    include: {
+      paper: {
+        select: { id: true, title: true, inputType: true, sourceUrl: true, fileName: true },
+      },
+    },
   });
 
-  if (!job) {
-    return NextResponse.json({ error: "Job not found" }, { status: 404 });
-  }
+  if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
 
   return NextResponse.json({
     id: job.id,
@@ -25,24 +29,24 @@ export async function GET(
   });
 }
 
-// Retry a failed job
 export async function POST(
   _req: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
-  const job = await prisma.job.findUnique({ where: { id: params.jobId } });
+  const { jobId } = await params;
+  const job = await prisma.job.findUnique({ where: { id: jobId } });
   if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
   if (job.status !== "FAILED") {
     return NextResponse.json({ error: "Only failed jobs can be retried" }, { status: 400 });
   }
 
   await prisma.job.update({
-    where: { id: params.jobId },
+    where: { id: jobId },
     data: { status: "PENDING", step: "Queued", error: null },
   });
 
   const { processJob } = await import("@/lib/processor");
-  processJob(params.jobId, job.paperId).catch(console.error);
+  processJob(jobId, job.paperId).catch(console.error);
 
   return NextResponse.json({ ok: true });
 }

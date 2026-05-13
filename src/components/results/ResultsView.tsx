@@ -5,6 +5,7 @@ import { BookOpen, ArrowLeft, ExternalLink } from "lucide-react";
 import SummaryCard from "./SummaryCard";
 import KeyConcepts from "./KeyConcepts";
 import MathSection from "./MathSection";
+import PaperPreview from "./PaperPreview";
 import MindMapSection from "./MindMapSection";
 import LearningCards from "./LearningCards";
 import RelatedTopics from "./RelatedTopics";
@@ -24,7 +25,6 @@ export default function ResultsView({ result, paper }: Props) {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Background glows */}
       <div className="fixed top-[-300px] right-[-200px] w-[700px] h-[700px] rounded-full bg-accent-violet/8 blur-[150px] pointer-events-none" />
       <div className="fixed bottom-[-200px] left-[-100px] w-[500px] h-[500px] rounded-full bg-accent-cyan/5 blur-[120px] pointer-events-none" />
 
@@ -50,61 +50,56 @@ export default function ResultsView({ result, paper }: Props) {
           </div>
           <div className="flex items-center gap-2">
             {paper.sourceUrl && (
-              <a
-                href={paper.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs border border-white/10 hover:border-accent-cyan/30 px-3 py-1.5 rounded-lg transition-all text-[#94A3B8] hover:text-white"
-              >
-                <ExternalLink size={12} />
-                View Original
+              <a href={paper.sourceUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs border border-white/10 hover:border-accent-cyan/30 px-3 py-1.5 rounded-lg transition-all text-[#94A3B8] hover:text-white">
+                <ExternalLink size={12} /> View Original
               </a>
             )}
-            <span className="hidden md:block text-sm text-[#475569] max-w-xs truncate">
-              {paper.title}
-            </span>
+            <span className="hidden md:block text-sm text-[#475569] max-w-xs truncate">{paper.title}</span>
           </div>
         </div>
       </header>
 
       {/* Content */}
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-10">
-        {/* Summary + Concepts row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2 fade-up">
-            <SummaryCard summary={result.summary} />
-          </div>
+      <main className="max-w-6xl mx-auto px-4 md:px-6 py-8">
+
+        {/* Row 1: Summary + Concepts */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+          <div className="lg:col-span-2 fade-up"><SummaryCard summary={result.summary} /></div>
           <div className="fade-up" style={{ animationDelay: "0.1s", opacity: 0 }}>
             <KeyConcepts concepts={result.keyConcepts} />
           </div>
         </div>
 
-        {/* Math section */}
-        <div className="mb-8 fade-up" style={{ animationDelay: "0.15s", opacity: 0 }}>
-          <MathSection math={result.math} />
+        {/* Row 2: Paper Preview + Math side by side on large screens */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+          <div className="fade-up" style={{ animationDelay: "0.15s", opacity: 0 }}>
+            <PaperPreview title={paper.title} inputType={paper.inputType} sourceUrl={paper.sourceUrl} />
+          </div>
+          <div className="fade-up" style={{ animationDelay: "0.2s", opacity: 0 }}>
+            <MathSection math={result.math} />
+          </div>
         </div>
 
-        {/* Mind map */}
-        <div className="mb-8 fade-up" style={{ animationDelay: "0.2s", opacity: 0 }}>
+        {/* Row 3: Mind Map (full width) */}
+        <div className="mb-5 fade-up" style={{ animationDelay: "0.25s", opacity: 0 }}>
           <MindMapSection mindMap={result.mindMap} />
         </div>
 
-        {/* Learning cards */}
-        <div className="mb-8 fade-up" style={{ animationDelay: "0.25s", opacity: 0 }}>
+        {/* Row 4: Learning Cards */}
+        <div className="mb-5 fade-up" style={{ animationDelay: "0.3s", opacity: 0 }}>
           <LearningCards cards={result.learningCards} />
         </div>
 
-        {/* Related topics */}
-        <div className="mb-10 fade-up" style={{ animationDelay: "0.3s", opacity: 0 }}>
+        {/* Row 5: Related Topics */}
+        <div className="mb-8 fade-up" style={{ animationDelay: "0.35s", opacity: 0 }}>
           <RelatedTopics topics={result.relatedTopics} />
         </div>
 
-        {/* Analyze another */}
+        {/* CTA */}
         <div className="text-center pb-10">
-          <button
-            onClick={() => router.push("/")}
-            className="inline-flex items-center gap-2 bg-bg-surface border border-white/8 hover:border-accent-cyan/30 px-6 py-3 rounded-xl text-sm font-medium transition-all hover:bg-bg-elevated"
-          >
+          <button onClick={() => router.push("/")}
+            className="inline-flex items-center gap-2 bg-bg-surface border border-white/8 hover:border-accent-cyan/30 px-6 py-3 rounded-xl text-sm font-medium transition-all hover:bg-bg-elevated">
             <BookOpen size={15} />
             Analyze Another Paper
           </button>
