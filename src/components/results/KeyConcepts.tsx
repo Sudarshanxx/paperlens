@@ -21,10 +21,10 @@ export default function KeyConcepts({ concepts }: { concepts: string[] }) {
       <div className="flex flex-wrap gap-2">
         {concepts.map((concept, i) => (
           <span
-            key={concept}
+            key={`concept-${i}-${concept}`}
             className={`text-xs border px-3 py-1.5 rounded-full font-medium ${TAG_COLORS[i % TAG_COLORS.length]}`}
           >
-            {concept}
+            {concept || `Concept ${i + 1}`}
           </span>
         ))}
       </div>

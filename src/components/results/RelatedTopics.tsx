@@ -23,17 +23,16 @@ export default function RelatedTopics({ topics }: { topics: Topic[] }) {
           Related Topics
         </h2>
       </div>
-
       <div className="flex flex-wrap gap-3">
         {topics.map((topic, i) => (
           <a
-            key={topic.label}
+            key={`topic-${i}-${topic.label}`}
             href={`https://arxiv.org/search/?query=${encodeURIComponent(topic.searchQuery)}&searchtype=all`}
             target="_blank"
             rel="noopener noreferrer"
             className={`group flex items-center gap-2 border border-white/10 bg-bg-elevated text-[#94A3B8] transition-all px-4 py-2.5 rounded-xl text-sm font-medium ${ACCENT_CYCLE[i % ACCENT_CYCLE.length]}`}
           >
-            {topic.label}
+            {topic.label || `Topic ${i + 1}`}
             <ExternalLink size={11} className="opacity-0 group-hover:opacity-100 transition-opacity" />
           </a>
         ))}
