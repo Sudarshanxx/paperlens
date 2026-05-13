@@ -30,11 +30,10 @@ export async function POST(req: NextRequest) {
           const pdfData = await pdfParse(buffer);
           rawContent = pdfData.text;
         } catch {
-          // fallback: use filename as hint
-          rawContent = `PDF file: ${fileName}. Unable to extract text automatically. Please analyze based on the title.`;
+          rawContent = `PDF file: ${fileName}. Please analyze based on the title.`;
         }
         if (!rawContent?.trim()) {
-          rawContent = `Research paper titled: ${title}. PDF text extraction returned empty - analyze based on title.`;
+          rawContent = `Research paper titled: ${title}.`;
         }
       } else if (inputType === "url") {
         sourceUrl = formData.get("url") as string;
@@ -48,48 +47,28 @@ export async function POST(req: NextRequest) {
       inputType = body.inputType || "text";
       rawContent = body.content || "";
       sourceUrl = body.url;
-
       if (inputType === "url" && sourceUrl) {
         rawContent = await fetchTextFromUrl(sourceUrl);
       }
     }
 
-    if (!title?.trim()) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
-    }
-    if (!rawContent?.trim()) {
-      return NextResponse.json({ error: "Paper content is required" }, { status: 400 });
-    }
+    if (!title?.trim()) return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    if (!rawContent?.trim()) return NextResponse.json({ error: "Paper content is required" }, { status: 400 });
 
-    // Create paper
+    // Create paper and job
     const paper = await prisma.paper.create({
-      data: {
-        title: title.trim(),
-        inputType,
-        rawContent,
-        sourceUrl,
-        fileName,
-      },
+      data: { title: title.trim(), inputType, rawContent, sourceUrl, fileName },
     });
 
-    // Create job
     const job = await prisma.job.create({
-      data: {
-        paperId: paper.id,
-        status: "PENDING",
-        step: "Queued",
-      },
+      data: { paperId: paper.id, status: "PENDING", step: "Queued" },
     });
 
-    // Fire and forget — don't await (Vercel serverless: use background processing)
-    processJob(job.id, paper.id).catch((err) => {
-      console.error("Job processing failed:", err);
-    });
+    // On Vercel: await the job directly in this request (within 60s timeout)
+    // This is reliable on serverless — fire-and-forget gets killed
+    await processJob(job.id, paper.id);
 
-    return NextResponse.json({
-      paperId: paper.id,
-      jobId: job.id,
-    });
+    return NextResponse.json({ paperId: paper.id, jobId: job.id });
   } catch (err) {
     console.error("Analyze error:", err);
     const message = err instanceof Error ? err.message : "Server error";
